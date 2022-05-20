@@ -10,7 +10,7 @@ void setup_lcd() {
   lcd.begin(20, 4);
   lcd.init();
   lcd.backlight();
-  display_error(char "Init");
+  display_error("Init");
 }
 
 void setup() {
