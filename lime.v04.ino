@@ -1,6 +1,13 @@
 #include <LiquidCrystal_I2C.h>
 #define RX_BUFFER_SIZE 14
 #define TX_BYTE_SIZE 20
+#define PI 3.14159
+#define INTERVAL_IN_MS 100
+#define ONE_SECOND_IN_MS 1000
+#define SECONDS_IN_ONE_HOUR 3600
+
+float current_speed_in_meters_per_second = 0;
+float current_odometer = 0;
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
@@ -20,17 +27,17 @@ void setup() {
   Serial.begin(9600);
 }
 
-#define PI 3.14159
-float get_speed(byte* frame_buf) {
-  unsigned char *p;
+float get_speed_in_meters_per_second(byte* frame_buf) {
   byte MSB = frame_buf[8];
   byte LSB = frame_buf[9];
   unsigned int wheel_diameter_mm = 241;
   unsigned int rotation_time_in_ms = (MSB << 8) + LSB;
   float wheel_circumference_mm = PI * wheel_diameter_mm;
-  float rotations_per_second = 1000 / (float) rotation_time_in_ms;
-  float speed_in_km_per_hour = rotations_per_second * wheel_circumference_mm * 60 * 60 / 1000 / 1000;
-  return (speed_in_km_per_hour);
+  float rotations_per_second = ONE_SECOND_IN_MS / (float) rotation_time_in_ms;
+  float speed_in_meters_per_second = rotations_per_second * wheel_circumference_mm  / ONE_SECOND_IN_MS;
+  if (MSB == 0x17 && LSB == 0x70)
+    speed_in_meters_per_second = 0;
+  return(speed_in_meters_per_second);
 }
 
 bool valid_checksum(byte* frame_buf) {
@@ -48,7 +55,6 @@ bool valid_checksum(byte* frame_buf) {
 #define SPEED_LCD_ROW 1
 #define ODO_LCD_ROW 2
 #define BAT_LCD_ROW 3
-
 
 void display_message(char *msg, int row) {
   lcd.setCursor(0, row);
@@ -71,28 +77,35 @@ void display_checksum_error() {
   display_error(str);
 }
 
-void display_battery_message(float volts) {
+void display_battery_voltage(float volts) {
   char str[21];
   sprintf(str, "bat: %2.2f volts", volts);
   display_message(str, BAT_LCD_ROW);
 }
 
-void display_speed(float speed) {
+void display_speed() {
   char str[21];
-  sprintf(str, "speed %f km/h", speed);
+  sprintf(str, "speed %d km/h",
+          (int) ( current_speed_in_meters_per_second / ONE_SECOND_IN_MS * SECONDS_IN_ONE_HOUR )
+          );
   display_message(str, SPEED_LCD_ROW);
 }
 
-void show_battery_voltage() {
+void display_odometer() {
+  char str[21];
+  sprintf(str, "odo: %d m", (int) current_odometer);
+  display_message(str, ODO_LCD_ROW);
+}
+
+float get_battery_voltage() {
   unsigned int adc_voltage = analogRead(A0);
   float volts = adc_voltage / 1023.0;
-  volts = volts * 40;
-  display_battery_message(volts);
+  return(volts * 40);
 }
 
 unsigned int led = 0;
 
-void blink_onboard_led() {
+void toggle_onboard_led() {
   if (led == 0) {
     digitalWrite(LED_BUILTIN, HIGH);
     led = 1;
@@ -111,9 +124,7 @@ void send_controller_settings() {
   byte tx_buf[] = { 0x01, 0x14, 0x01, 0x01, 0x0f, 0x80, 0x50, 0x00, 0x5f, 0x01, 0x05, 0x00, 0x64, 0x16, 0x01, 0x22, 0x00, 0x00, 0x16, 0xd6 }; // speed 3
   unsigned int bytes_tx;
   bytes_tx = Serial.write(tx_buf, TX_BYTE_SIZE);
-  if (bytes_tx == TX_BYTE_SIZE) {
-    blink_onboard_led();
-  } else {
+  if (bytes_tx != TX_BYTE_SIZE) {
     display_tx_error(bytes_tx);
   }
 }
@@ -129,9 +140,9 @@ void receive_controller_msg() {
     int rlen = Serial.readBytes(rx_buffer + rx_idx, 1);
     rx_idx = rx_idx + rlen;
     if (rx_idx == RX_BUFFER_SIZE) {
-      blink_onboard_led();
+      toggle_onboard_led();
       if (valid_checksum(rx_buffer)) {
-        display_speed(get_speed(rx_buffer));
+        current_speed_in_meters_per_second = get_speed_in_meters_per_second(rx_buffer);
       } else {
         drain_serial();
         display_checksum_error();
@@ -141,9 +152,17 @@ void receive_controller_msg() {
   }
 }
 
+void compute_odometer() {
+  current_odometer = current_odometer + ( current_speed_in_meters_per_second * ( (float) INTERVAL_IN_MS / ONE_SECOND_IN_MS ) );
+}
+
 void loop() {
   receive_controller_msg();
   send_controller_settings();
-  show_battery_voltage();
-  delay(100);
+  compute_odometer();
+  float volts = get_battery_voltage();
+  display_battery_voltage(volts);
+  display_odometer();
+  display_speed();
+  delay(INTERVAL_IN_MS);
 }
