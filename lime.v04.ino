@@ -42,6 +42,8 @@ void setup() {
   setup_tft();
   Serial.begin(9600);
   last_odometer_update_in_millis = millis();
+  draw_kmh_legend();
+  draw_battery_legend();
 }
 
 void loop() {
@@ -148,36 +150,47 @@ void compute_odometer() {
   float duration_in_seconds = (float) duration_in_millis / ONE_SECOND_IN_MS;
   current_odometer = current_odometer + current_speed_in_meters_per_second * duration_in_seconds;
   last_odometer_update_in_millis = now_in_millis;
-
-  char buffer[256];
-  sprintf(buffer, "ms: %.2f, d: %.4f", current_speed_in_meters_per_second, duration_in_seconds);
-  display_error(buffer);
-
+  //  char buffer[256];
+  //  sprintf(buffer, "ms: %.2f, d: %.4f", current_speed_in_meters_per_second, duration_in_seconds);
+  //  display_error(buffer);
 }
 
-#define SPEED_CHAR1_OFFSET 30
-#define SPEED_CHAR2_OFFSET 120
-#define SPEED_VERT_OFFSET 80
+#define SPEED_CHAR1_OFFSET 40
+#define SPEED_CHAR2_OFFSET 130
+#define SPEED_VERT_OFFSET 50
 
-#define ODOMETER_CHAR1_OFFSET 90
+#define ODOMETER_CHAR1_OFFSET 40
 #define ODOMETER_VERT_OFFSET 205
 
-#define VOLTS_CHAR1_OFFSET 60
+#define VOLTS_CHAR1_OFFSET 52
 #define VOLTS_VERT_OFFSET 15
+
+void draw_kmh_legend() {
+  tft.setTextSize(4);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setCursor(80, 160);
+  tft.print( "km/h");
+}
+
+void draw_battery_legend() {
+  tft.setTextSize(3);
+  tft.setTextColor(ST77XX_GREEN);
+  tft.setCursor(VOLTS_CHAR1_OFFSET + 53, VOLTS_VERT_OFFSET);
+  tft.print( "volts");
+}
 
 void display_battery_voltage(float current_volts) {
   tft.setTextSize(3);
+  char buffer[8];
   if ((int) current_volts != (int) last_volts) {
     tft.setTextColor(ST77XX_BLACK);
     tft.setCursor(VOLTS_CHAR1_OFFSET, VOLTS_VERT_OFFSET);
-    char buffer[16];
-    sprintf(buffer, "%02d volts", (int) last_volts);
+    sprintf(buffer, "%02d", (int) last_volts);
     tft.print(buffer);
   }
   tft.setTextColor(ST77XX_GREEN);
   tft.setCursor(VOLTS_CHAR1_OFFSET, VOLTS_VERT_OFFSET);
-  char buffer[16];
-  sprintf(buffer, "%02d volts", (int) current_volts);
+  sprintf(buffer, "%02d", (int) current_volts);
   tft.print(buffer);
 }
 
@@ -187,12 +200,12 @@ void display_odometer(void) {
   if ((int) current_odometer != (int) last_odometer) {
     tft.setTextColor(ST77XX_BLACK);
     tft.setCursor(ODOMETER_CHAR1_OFFSET, ODOMETER_VERT_OFFSET);
-    sprintf(buffer, "%06d", (int) last_odometer);
+    sprintf(buffer, "%08d m", (int) last_odometer);
     tft.print(buffer);
   }
-  tft.setTextColor(ST77XX_BLUE);
+  tft.setTextColor(ST77XX_CYAN);
   tft.setCursor(ODOMETER_CHAR1_OFFSET, ODOMETER_VERT_OFFSET);
-  sprintf(buffer, "%06d", (int) current_odometer);
+  sprintf(buffer, "%08d m", (int) current_odometer);
   tft.print(buffer);
 }
 
