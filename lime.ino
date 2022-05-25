@@ -36,7 +36,6 @@ void setup_tft() {
   tft.setSPISpeed(10000000);
   tft.setRotation(2);
   tft.fillScreen(ST77XX_BLACK);
-  display_zeroed_odometer();
 }
 
 void setup() {
@@ -47,6 +46,9 @@ void setup() {
   last_odometer_update_in_millis = millis();
   draw_kmh_legend();
   draw_battery_legend();
+  display_zeroed_odometer();
+  pinMode(15, OUTPUT);
+  set_screen_blank(0);
 }
 
 void loop() {
@@ -66,6 +68,11 @@ void loop() {
   last_speed_in_km_per_hour = current_speed_in_km_per_hour;
   last_odometer = current_odometer;
   last_volts = current_volts;
+
+//  char foobuffer[16];
+//  sprintf(foobuffer,"lmt: %d, b: %d", last_moving_time_in_millis, screen_is_blanked);
+//  display_error(foobuffer);
+
   delay(INTERVAL_IN_MS);
 }
 
@@ -175,7 +182,7 @@ void compute_odometer() {
 
 #define ODOMETER_CHAR1_OFFSET 40
 #define ODOMETER_VERT_OFFSET 205
-#define ODOMETER_CHAR_INC_OFFSET 10
+#define ODOMETER_CHAR_INC_OFFSET 20
 
 #define VOLTS_CHAR1_OFFSET 52
 #define VOLTS_VERT_OFFSET 15
