@@ -22,18 +22,21 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 float current_speed_in_meters_per_second = 0;
 float current_speed_in_km_per_hour;
 float last_speed_in_km_per_hour = 0;
-float current_odometer = 0;
-float last_odometer = 0;
+double current_odometer = 0;
+double last_odometer = 0;
 float last_volts;
 
 unsigned long last_odometer_update_in_millis;
+unsigned long last_moving_time_in_millis;
 
+uint8_t screen_is_blanked = 0;
 
 void setup_tft() {
   tft.init(240, 240, SPI_MODE3);
   tft.setSPISpeed(10000000);
   tft.setRotation(2);
   tft.fillScreen(ST77XX_BLACK);
+  display_zeroed_odometer();
 }
 
 void setup() {
@@ -55,11 +58,20 @@ void loop() {
   display_odometer();
   display_speed();
   toggle_onboard_led();
-
+  if (last_moving_time_in_millis + ONE_SECOND_IN_MS * 10  < millis()) {
+    set_screen_blank(1);
+  } else if (screen_is_blanked) {
+    set_screen_blank(0);
+  }
   last_speed_in_km_per_hour = current_speed_in_km_per_hour;
   last_odometer = current_odometer;
   last_volts = current_volts;
   delay(INTERVAL_IN_MS);
+}
+
+void set_screen_blank(uint8_t is_blanked) {
+  digitalWrite(15, (is_blanked) ? LOW : HIGH );
+  screen_is_blanked = is_blanked;
 }
 
 float get_speed_in_meters_per_second(byte* frame_buf) {
@@ -135,6 +147,8 @@ void receive_controller_msg() {
     if (rx_idx == RX_BUFFER_SIZE) {
       if (valid_checksum(rx_buffer)) {
         current_speed_in_meters_per_second = get_speed_in_meters_per_second(rx_buffer);
+        if (current_speed_in_meters_per_second > 0)
+          last_moving_time_in_millis = millis();
       } else {
         drain_serial();
         display_checksum_error();
@@ -161,6 +175,7 @@ void compute_odometer() {
 
 #define ODOMETER_CHAR1_OFFSET 40
 #define ODOMETER_VERT_OFFSET 205
+#define ODOMETER_CHAR_INC_OFFSET 10
 
 #define VOLTS_CHAR1_OFFSET 52
 #define VOLTS_VERT_OFFSET 15
@@ -193,20 +208,51 @@ void display_battery_voltage(float current_volts) {
   sprintf(buffer, "%02d", (int) current_volts);
   tft.print(buffer);
 }
+void display_zeroed_odometer(void) {
+  unsigned int offset = 0;
+  tft.setTextSize(3);
+  tft.setTextColor(ST77XX_CYAN);
+  for (int idx = 7; idx >= 0; idx--) {
+    tft.setCursor(ODOMETER_CHAR1_OFFSET + offset, ODOMETER_VERT_OFFSET);
+    tft.print(0);
+    offset = offset + ODOMETER_CHAR_INC_OFFSET;
+  }
+}
 
 void display_odometer(void) {
-  tft.setTextSize(3);
+  if  ( (unsigned long) current_odometer == (unsigned long) last_odometer )
+    return;
+
+  double current_odometer_copy = current_odometer;
+  double last_odometer_copy = last_odometer;
+
+  unsigned int last_odometer_previous_msd = 0;
+  unsigned int current_odometer_previous_msd = 0;
+  unsigned int offset = 0;
   char buffer[16];
-  if ((int) current_odometer != (int) last_odometer) {
-    tft.setTextColor(ST77XX_BLACK);
-    tft.setCursor(ODOMETER_CHAR1_OFFSET, ODOMETER_VERT_OFFSET);
-    sprintf(buffer, "%08d m", (int) last_odometer);
-    tft.print(buffer);
+
+  for (int idx = 7; idx >= 0; idx--) {
+    last_odometer_copy = last_odometer_copy - last_odometer_previous_msd;
+    unsigned int last_odometer_sd = last_odometer_copy / pow(10, idx);
+    last_odometer_previous_msd = last_odometer_sd * pow(10, idx);
+
+    current_odometer_copy = current_odometer_copy - current_odometer_previous_msd;
+    unsigned int current_odometer_sd = current_odometer_copy / pow(10, idx);
+    current_odometer_previous_msd = current_odometer_sd * pow(10, idx);
+
+    if (current_odometer_sd != last_odometer_sd ) {
+      tft.setTextSize(3);
+      // erase old digit
+      tft.setTextColor(ST77XX_BLACK);
+      tft.setCursor(ODOMETER_CHAR1_OFFSET + offset, ODOMETER_VERT_OFFSET);
+      tft.print(last_odometer_sd);
+      // write new digit
+      tft.setTextColor(ST77XX_CYAN);
+      tft.setCursor(ODOMETER_CHAR1_OFFSET + offset, ODOMETER_VERT_OFFSET);
+      tft.print(current_odometer_sd);
+    }
+    offset = offset + ODOMETER_CHAR_INC_OFFSET;
   }
-  tft.setTextColor(ST77XX_CYAN);
-  tft.setCursor(ODOMETER_CHAR1_OFFSET, ODOMETER_VERT_OFFSET);
-  sprintf(buffer, "%08d m", (int) current_odometer);
-  tft.print(buffer);
 }
 
 void display_speed(void) {
