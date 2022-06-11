@@ -7,6 +7,7 @@
 #define TX_BYTE_SIZE 20
 #define PI 3.14159
 #define METERS_PER_KM 1000
+#define HECTOMETERS_PER_KM 10
 #define INTERVAL_IN_MS 100
 #define ONE_SECOND_IN_MS 1000
 #define MM_PER_METER 1000
@@ -26,7 +27,7 @@ float current_speed_in_meters_per_second = 0;
 float current_speed_in_km_per_hour;
 float last_speed_in_km_per_hour = 0;
 double current_odometer = 0; // in meters
-unsigned long eeprom_odometer_in_km = 0;
+unsigned long eeprom_odometer_in_hm = 0;
 double last_odometer = 0;
 float last_volts;
 
@@ -55,7 +56,7 @@ void wake_tft() {
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0, INPUT);
-  pinMode(15, OUTPUT);
+  pinMode(15, OUTPUT); // D8
   Serial.begin(9600);
   EEPROM.begin(4);
   wake_tft();
@@ -78,9 +79,10 @@ void loop() {
   } else if (screen_is_blanked) {
     set_screen_blank(0);
   }
-  if ( floor(current_odometer / METERS_PER_KM ) > eeprom_odometer_in_km) {
-      write_odometer_to_eeprom();
-    }
+
+  if ( floor(current_odometer / METERS_PER_KM ) * HECTOMETERS_PER_KM > eeprom_odometer_in_hm) {
+    write_odometer_to_eeprom();
+  }
   last_speed_in_km_per_hour = current_speed_in_km_per_hour;
   last_odometer = current_odometer;
   last_volts = current_volts;
@@ -89,19 +91,13 @@ void loop() {
 }
 
 void write_odometer_to_eeprom() {
-  EEPROM.put(0, (unsigned long) ((unsigned long) floor(current_odometer / METERS_PER_KM) ));
-  EEPROM.commit();
-}
-
-void zero_odometer() {
-  unsigned long zero_odometer = 99;
-  EEPROM.put(0, zero_odometer);
+  EEPROM.put(0, (unsigned long) ((unsigned long) floor(current_odometer / METERS_PER_KM) * HECTOMETERS_PER_KM ));
   EEPROM.commit();
 }
 
 void read_odometer_from_eeprom() {
-  EEPROM.get(0, eeprom_odometer_in_km);
-  current_odometer = eeprom_odometer_in_km * METERS_PER_KM;
+  EEPROM.get(0, eeprom_odometer_in_hm);
+  current_odometer = eeprom_odometer_in_hm * METERS_PER_KM / HECTOMETERS_PER_KM;
 }
 
 void set_screen_blank(uint8_t is_blanked) {
