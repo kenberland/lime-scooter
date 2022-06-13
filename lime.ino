@@ -61,6 +61,7 @@ void setup() {
   EEPROM.begin(4);
   wake_tft();
   last_odometer_update_in_millis = millis();
+  //  zero_odometer_to_eeprom();
   read_odometer_from_eeprom();
 }
 
@@ -80,7 +81,7 @@ void loop() {
     set_screen_blank(0);
   }
 
-  if ( floor(current_odometer / METERS_PER_KM ) * HECTOMETERS_PER_KM > eeprom_odometer_in_hm) {
+  if ( floor(current_odometer / METERS_PER_KM * HECTOMETERS_PER_KM) > eeprom_odometer_in_hm) {
     write_odometer_to_eeprom();
   }
   last_speed_in_km_per_hour = current_speed_in_km_per_hour;
@@ -90,8 +91,14 @@ void loop() {
   delay(INTERVAL_IN_MS);
 }
 
+void zero_odometer_to_eeprom() {
+  EEPROM.put(0, (unsigned long) 0 );
+  EEPROM.commit();
+}
+
+
 void write_odometer_to_eeprom() {
-  EEPROM.put(0, (unsigned long) ((unsigned long) floor(current_odometer / METERS_PER_KM) * HECTOMETERS_PER_KM ));
+  EEPROM.put(0, (unsigned long) floor(current_odometer / METERS_PER_KM * HECTOMETERS_PER_KM) );
   EEPROM.commit();
 }
 
