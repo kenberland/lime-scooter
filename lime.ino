@@ -20,6 +20,7 @@
 #define TFT_DC         5 // D1 from DC pin on display
 #define TFT_SCLK 14  // D5 Clock out, from SCL on display
 #define TFT_MOSI 13  // D7 Data out, from SDA on display
+#define TFT_BLANK 15 // D8 Blank, low/hi to sleep, BLK on the display
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
@@ -39,7 +40,7 @@ uint8_t screen_is_blanked;
 void setup_tft() {
   screen_is_blanked = 0;
   last_moving_time_in_millis = millis();
-  tft.init(240, 240, SPI_MODE3);
+  tft.init(240, 280, SPI_MODE3);
   tft.setSPISpeed(10000000);
   tft.setRotation(2);
   tft.fillScreen(ST77XX_BLACK);
@@ -56,7 +57,7 @@ void wake_tft() {
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(A0, INPUT);
-  pinMode(15, OUTPUT); // D8
+  pinMode(TFT_BLANK, OUTPUT);
   Serial.begin(9600);
   EEPROM.begin(4);
   wake_tft();
@@ -207,19 +208,22 @@ void compute_odometer(float current_volts) {
 
 #define SPEED_CHAR1_OFFSET 40
 #define SPEED_CHAR2_OFFSET 130
-#define SPEED_VERT_OFFSET 50
+#define SPEED_VERT_OFFSET 60
 
 #define ODOMETER_CHAR1_OFFSET 40
-#define ODOMETER_VERT_OFFSET 205
+#define ODOMETER_VERT_OFFSET 215
 #define ODOMETER_CHAR_INC_OFFSET 20
 
 #define VOLTS_CHAR1_OFFSET 52
-#define VOLTS_VERT_OFFSET 15
+#define VOLTS_VERT_OFFSET 25
+
+#define SPEED_UNITS_OFFSET 80
+#define SPEED_UNITS_VERT_OFFSET 162
 
 void draw_kmh_legend() {
   tft.setTextSize(4);
   tft.setTextColor(ST77XX_WHITE);
-  tft.setCursor(80, 160);
+  tft.setCursor(SPEED_UNITS_OFFSET, SPEED_UNITS_VERT_OFFSET);
   tft.print( "km/h");
 }
 
