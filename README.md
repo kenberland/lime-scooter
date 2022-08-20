@@ -64,6 +64,9 @@ I can't remember if the 3.5 or 4mm ones fit. One of them did.
 - https://www.amazon.com/gp/product/B07TB8QXMC
 - https://www.amazon.com/gp/product/B002AVVO7U
 
+https://www.youtube.com/shorts/7AXKoABvEg4
+https://www.youtube.com/shorts/jEweE6aFhZE
+
 Some other pictures:
 
 ![](img/IMG_3112.jpeg)
