@@ -3,6 +3,10 @@
 Lime Gen3 Scooter Hack
 ======================
 
+## Shorts of the finished scooter
+- https://www.youtube.com/shorts/7AXKoABvEg4
+- https://www.youtube.com/shorts/jEweE6aFhZE
+
 I used a [Wemos D1 Mini clone for the microcontroller](https://www.amazon.com/gp/product/B081PX9YFV) and wrote [some Arduino code](./lime.ino) that drives the [display](https://www.buydisplay.com/1-69-inch-280x240-ips-tft-lcd-display-module-for-arduino-raspberry-pi) with a spedometer, odometer, and battery display. I also used [this display](https://www.amazon.com/gp/product/B07P9X3L7M) because it shipped faster.
 
 The microcontroller needs a [5V power supply](https://www.amazon.com/gp/product/B06XRN7NFQ). I [expoxied](img/IMG_3039.jpg) the voltage adjusting screw. I'd like to try it without one, with a voltage divider instead. The MCU and screen draw about 25mV when sleeping and 125 when on. See https://youtube.com/shorts/8VgVIRs36Q8
@@ -63,9 +67,6 @@ I can't remember if the 3.5 or 4mm ones fit. One of them did.
 - https://www.amazon.com/gp/product/B08Z7FP236
 - https://www.amazon.com/gp/product/B07TB8QXMC
 - https://www.amazon.com/gp/product/B002AVVO7U
-
-https://www.youtube.com/shorts/7AXKoABvEg4
-https://www.youtube.com/shorts/jEweE6aFhZE
 
 Some other pictures:
 
